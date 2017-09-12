@@ -1,0 +1,31 @@
+{% extends 'index.html' %}
+{% block content %}
+<div class="jumbotron">
+<div class="container">
+<h1>Hello !! Please provide your input dates for leave....</h1></div>
+</div>
+
+
+
+<div class="container">
+      <div class="row">
+        <div class="col-md-4">
+            <form method="POST" action="">
+                <label>Start Date&nbsp;</label> <input name="sdate" placeholder="Start Date" type="date"
+                                       value="{{ request.form.sdate }}">
+                <br>
+               <label>End Date&nbsp;&nbsp;</label> <input name="edate" type="date" placeholder="End Date"
+                                             value="{{ request.form.edate }}"><br>
+                <input type="submit" value="Submit">
+            </form>
+            {% if error %}
+			<p class="error" style="color:red;"><strong>Error:</strong> {{ error }}
+			{% endif %}
+            {% if message %}
+			<p class="error" style="color:green;"><strong>Message:</strong> {{ message }}
+			{% endif %}
+
+        </div>
+      </div>
+</div>
+{% endblock %}
