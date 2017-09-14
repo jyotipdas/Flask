@@ -1,8 +1,9 @@
-{% extends 'index.html' %}
+{% extends 'index1.html' %}
 {% block content %}
+
 <div class="jumbotron">
       <div class="container">
-        <h2>Please Login below!!</h2>
+        <h2>Please Login!!</h2>
       </div>
     </div>
 <div class="container">
@@ -23,9 +24,14 @@
                 {% for error in form.password.errors %}
                     <li style="color:red;">{{ error }}</li>
                 {% endfor %}
+                {% if error %}
+                    <li style="color:red;">{{ error }}</li>
+                {% endif %}
             </ul>
             {{ form.recaptcha }}
+            <br>
             <input type="submit" value="Submit">
+
         </form>
         </div>
     </div>
