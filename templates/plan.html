@@ -12,10 +12,11 @@
         <div class="col-md-4">
             <form method="POST" action="">
                 <label>Start Date&nbsp;</label> <input name="sdate" placeholder="Start Date" type="date"
-                                       value="{{ request.form.sdate }}">
+                                       value="{{ request.form.sdate }}" required>
                 <br>
                <label>End Date&nbsp;&nbsp;</label> <input name="edate" type="date" placeholder="End Date"
-                                             value="{{ request.form.edate }}"><br>
+                                             value="{{ request.form.edate }}" required><br>
+               <label>Days &nbsp;&nbsp;</label> <input name='days' type="text" value="{{ request.form.days }}" required><br>
                 <input type="submit" value="Submit">
             </form>
             {% if error %}

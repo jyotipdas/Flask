@@ -5,6 +5,7 @@ from wtforms.validators import InputRequired, Length
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import  check_password_hash
 from flask_login import LoginManager, login_required, login_user,UserMixin, logout_user,current_user
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -41,8 +42,9 @@ def load_user(user_id):
 class LeaveDetail(db.Model):
     __tablename__ = 'leavedetail'
     id = db.Column(db.Integer, primary_key=True)
-    sdate = db.Column(db.String(10),nullable=False)
-    edate = db.Column(db.String(10),nullable=False)
+    sdate = db.Column(db.DateTime,nullable=False)
+    edate = db.Column(db.DateTime,nullable=False)
+    days = db.Column(db.Integer)
     usr_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     #usr_idR = db.relationship('users', foreign_keys='leavedetail.usr_id')
@@ -90,20 +92,25 @@ def welcome():
 @login_required
 def plan():
     if request.method == 'POST':
-        if request.form['sdate'] > request.form['edate']:
+        if request.form['sdate'] > request.form['edate'] :
             return render_template('plan.html', error='Start date is greater than End date')
-        print request.form['sdate'], request.form['edate']
-        leave = LeaveDetail(sdate=str(request.form['sdate']), edate=str(request.form['edate']) ,
+        print request.form['sdate'], request.form['edate'],request.form['days']
+        sdate = datetime.strptime(str(request.form['sdate']),'%Y-%m-%d')
+        edate = datetime.strptime(str(request.form['edate']),'%Y-%m-%d')
+        days = request.form['days']
+        leave = LeaveDetail(sdate=sdate, edate=edate,days=days,
                             user = current_user )
         db.session.add(leave)
         db.session.commit()
-        return render_template('plan.html',message='Leave applied from {} to {}'.format(request.form['sdate'],request.form['edate']))
+        request.form = {}
+        return render_template('plan.html',message='Leave applied from {} to {} for {} days'.format(sdate,edate,days))
     else:
         return render_template('plan.html')
 
 @app.route('/cancel/',methods=['GET','POST'])
 @login_required
 def cancel():
+
     return render_template('cancel.html', list=[])
 
 @app.route('/balance/')
