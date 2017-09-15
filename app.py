@@ -110,8 +110,9 @@ def plan():
 @app.route('/cancel/',methods=['GET','POST'])
 @login_required
 def cancel():
-
-    return render_template('cancel.html', list=[])
+    list =  Users.query.join(LeaveDetail,Users.id==LeaveDetail.usr_id).add_columns(Users.username,LeaveDetail.sdate,LeaveDetail.edate).\
+        filter(Users.username==current_user)
+    return render_template('cancel.html', list=list)
 
 @app.route('/balance/')
 @login_required
