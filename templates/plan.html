@@ -2,7 +2,7 @@
 {% block content %}
 <div class="jumbotron">
 <div class="container">
-<h1>Hello !! Please provide your input dates for leave....</h1></div>
+<h2>Hello !! Please provide your input dates for leave....</h2></div>
 </div>
 
 
@@ -16,7 +16,9 @@
                 <br>
                <label>End Date&nbsp;&nbsp;</label> <input name="edate" type="date" placeholder="End Date"
                                              value="{{ request.form.edate }}" required><br>
-               <label>Days &nbsp;&nbsp;</label> <input name='days' type="text" value="{{ request.form.days }}" required><br>
+               <label>Days &nbsp;&nbsp;</label> <input name='days' type="text" value="{{ request.form.days }}"
+                                                       required><li>Please cross check the no of days before
+                submitting</li><br>
                 <input type="submit" value="Submit">
             </form>
             {% if error %}

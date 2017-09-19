@@ -6,6 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import  check_password_hash
 from flask_login import LoginManager, login_required, login_user,UserMixin, logout_user,current_user
 from datetime import datetime
+from sqlalchemy import text
 
 app = Flask(__name__)
 
@@ -26,15 +27,10 @@ class Users(UserMixin,db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(15), unique=True,nullable=False)
     password = db.Column(db.String(80),nullable=False)
+    balance = db.Column(db.Integer)
     leaves = db.relationship('LeaveDetail', backref='user', lazy='dynamic')
 
-#    def __init__(self,username,password):
-#        self.username=username
-#        self.password=password
-#
-#    def __repr__(self):
-#        return '{}={}'.format(self.username,self.password)
-#
+
 @login_manager.user_loader
 def load_user(user_id):
     return Users.query.get(int(user_id))
@@ -46,17 +42,6 @@ class LeaveDetail(db.Model):
     edate = db.Column(db.DateTime,nullable=False)
     days = db.Column(db.Integer)
     usr_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-
-    #usr_idR = db.relationship('users', foreign_keys='leavedetail.usr_id')
-
-#    def __init__(self,usr_id,sdate,edate):
-#        self.usr_id = usr_id
-#        self.sdate = sdate
-#        self.edate = edate
-#
-#    def __repr__(self):
-#        return '{}={}'.format(self.sdate,self.edate)
-
 
 
 class LoginForm(FlaskForm):
@@ -94,30 +79,43 @@ def plan():
     if request.method == 'POST':
         if request.form['sdate'] > request.form['edate'] :
             return render_template('plan.html', error='Start date is greater than End date')
-        print request.form['sdate'], request.form['edate'],request.form['days']
         sdate = datetime.strptime(str(request.form['sdate']),'%Y-%m-%d')
         edate = datetime.strptime(str(request.form['edate']),'%Y-%m-%d')
         days = request.form['days']
-        leave = LeaveDetail(sdate=sdate, edate=edate,days=days,
+        balance = Users.query.filter_by(id=current_user.get_id()).first()
+        dbbalance= balance.balance
+        if int(days) <= dbbalance:
+            updated_balance = dbbalance - int(days)
+            balance.balance = updated_balance
+            db.session.commit()
+            leave = LeaveDetail(sdate=sdate, edate=edate,days=days,
                             user = current_user )
-        db.session.add(leave)
-        db.session.commit()
-        request.form = {}
-        return render_template('plan.html',message='Leave applied from {} to {} for {} days'.format(sdate,edate,days))
+            db.session.add(leave)
+            db.session.commit()
+            request.form = {}
+            return render_template('plan.html',message='Leave applied from {} to {} for {} days'.format(sdate,edate,
+                                                                                                        days))
+        else:
+            balance = balance.balance
+            return render_template('plan.html', error='You have only {} no of leaves'.format(balance))
+
     else:
         return render_template('plan.html')
 
-@app.route('/cancel/',methods=['GET','POST'])
+@app.route('/log/',methods=['GET','POST'])
 @login_required
-def cancel():
-    list =  Users.query.join(LeaveDetail,Users.id==LeaveDetail.usr_id).add_columns(Users.username,LeaveDetail.sdate,LeaveDetail.edate).\
-        filter(Users.username==current_user)
-    return render_template('cancel.html', list=list)
+def log():
+    results = db.engine.execute(text("select username,sdate,edate,days from users join leavedetail on users.id = "
+                                     "leavedetail.usr_id where users.id = {}".format(1)))
+
+    return render_template('log.html', list=results)
 
 @app.route('/balance/')
 @login_required
 def balance():
-    return render_template('balance.html', list=[])
+    balance = Users.query.filter_by(id=current_user.get_id()).first()
+    list = balance.balance
+    return render_template('balance.html', list=list)
 
 @app.route('/logout/')
 @login_required
