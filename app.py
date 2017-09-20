@@ -1,3 +1,4 @@
+#!/usr/bin/python2.7
 from flask import Flask, render_template,request, url_for, redirect, session, g
 from flask_wtf import FlaskForm, RecaptchaField
 from wtforms import StringField, PasswordField
@@ -9,10 +10,13 @@ from datetime import datetime
 from sqlalchemy import text
 import atexit
 from apscheduler.scheduler import Scheduler
+#import logging
+
 
 app = Flask(__name__)
 cron = Scheduler(daemon=True)
 cron.start()
+#logging.basicConfig()
 
 app.config['SECRET_KEY'] = ';Y8m4e#PUP\qQR]+"`ZAM(&td{8utWN?CtHXg6X(-z!$XP4?(t)~g4Kk9xgr8}ZaH]eGx(:uvNE}GVp;'
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6Lf3yS8UAAAAAEDgFWIeKHal4Vem1HSjDy7br3rr'
@@ -107,9 +111,12 @@ def plan():
 @login_required
 def log():
     results = db.engine.execute(text("select username,sdate,edate,days from users join leavedetail on users.id = "
-                                     "leavedetail.usr_id where users.id = {}".format(1)))
+                                     "leavedetail.usr_id where users.id = {}".format(current_user.get_id())))
 
-    return render_template('log.html', list=results)
+    if results:
+        return render_template('log.html', list=results)
+    else:
+        return render_template('log.html', message='Wow!! You dont have any leave in past....')
 
 @app.route('/balance/')
 @login_required
@@ -128,14 +135,11 @@ def logout():
 def page_not_found(e):
     return render_template('404.html',error=e)
 
-@cron.interval_schedule(hours=0, start_date='2017-09-20 18:00')
+@cron.interval_schedule(hours=5, start_date='2017-09-20 18:00')
 def job_function():
-    user = Users.query.filter_by(id=current_user.get_id()).first()
-    balance = user.balance
-    new_balance = balance + 2
-    user.balance = new_balance
+    for row in Users.query.all():
+        row.balance = row.balance + 2
     db.session.commit()
-
 atexit.register(lambda: cron.shutdown(wait=False))
 
 if __name__ == "__main__":
