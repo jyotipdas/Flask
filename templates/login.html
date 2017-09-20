@@ -8,17 +8,17 @@
     </div>
 <div class="container">
       <div class="row">
-        <div class="col-md-4">
+        <div class="col-md-offset-4">
         <form method="POST" action="{{ url_for('login') }}">
             {{ form.csrf_token }}
-            {{ form.username.label }}
+            <label style="display:inline-block;width:100px;">{{ form.username.label }}</label>
             {{ form.username}}
             <ul>
                 {% for error in form.username.errors %}
                     <li style="color:red;">{{ error }}</li>
                 {% endfor %}
             </ul>
-            {{ form.password.label}}
+            <label style="display:inline-block;width:100px;">{{ form.password.label}}</label>
             {{ form.password }}
             <ul>
                 {% for error in form.password.errors %}

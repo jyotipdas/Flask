@@ -7,10 +7,14 @@ from werkzeug.security import  check_password_hash
 from flask_login import LoginManager, login_required, login_user,UserMixin, logout_user,current_user
 from datetime import datetime
 from sqlalchemy import text
+import atexit
+from apscheduler.scheduler import Scheduler
 
 app = Flask(__name__)
+cron = Scheduler(daemon=True)
+cron.start()
 
-app.config['SECRET_KEY'] = 'Thisismysecretkey'
+app.config['SECRET_KEY'] = ';Y8m4e#PUP\qQR]+"`ZAM(&td{8utWN?CtHXg6X(-z!$XP4?(t)~g4Kk9xgr8}ZaH]eGx(:uvNE}GVp;'
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6Lf3yS8UAAAAAEDgFWIeKHal4Vem1HSjDy7br3rr'
 app.config['RECAPTCHA_PRIVATE_KEY'] = '6Lf3yS8UAAAAAExePlZihuoFhiZIcZOKWskui3sd'
 app.config['TESTING'] = True
@@ -19,8 +23,6 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-
-
 
 class Users(UserMixin,db.Model):
     __tablename__ = 'users'
@@ -40,7 +42,8 @@ class LeaveDetail(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sdate = db.Column(db.DateTime,nullable=False)
     edate = db.Column(db.DateTime,nullable=False)
-    days = db.Column(db.Integer)
+    days = db.Column(db.Integer,nullable=False)
+    a_time = db.Column(db.DateTime,nullable=False)
     usr_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
 
@@ -51,9 +54,6 @@ class LoginForm(FlaskForm):
 
 
 @app.route('/')
-#def index():
-#    return render_template('welcome.html')
-#
 @app.route('/login/', methods=['GET','POST'])
 def login():
     form = LoginForm()
@@ -70,6 +70,7 @@ def login():
     return render_template('login.html', form=form)
 
 @app.route('/welcome')
+@login_required
 def welcome():
     return render_template('welcome.html')
 
@@ -81,14 +82,14 @@ def plan():
             return render_template('plan.html', error='Start date is greater than End date')
         sdate = datetime.strptime(str(request.form['sdate']),'%Y-%m-%d')
         edate = datetime.strptime(str(request.form['edate']),'%Y-%m-%d')
-        days = request.form['days']
+        days = int(request.form['days'])
         balance = Users.query.filter_by(id=current_user.get_id()).first()
         dbbalance= balance.balance
-        if int(days) <= dbbalance:
+        ctime=datetime.now()
+        if int(days) <= dbbalance :
             updated_balance = dbbalance - int(days)
             balance.balance = updated_balance
-            db.session.commit()
-            leave = LeaveDetail(sdate=sdate, edate=edate,days=days,
+            leave = LeaveDetail(sdate=sdate, edate=edate,days=days,a_time=ctime,
                             user = current_user )
             db.session.add(leave)
             db.session.commit()
@@ -126,6 +127,16 @@ def logout():
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html',error=e)
+
+@cron.interval_schedule(hours=0, start_date='2017-09-20 18:00')
+def job_function():
+    user = Users.query.filter_by(id=current_user.get_id()).first()
+    balance = user.balance
+    new_balance = balance + 2
+    user.balance = new_balance
+    db.session.commit()
+
+atexit.register(lambda: cron.shutdown(wait=False))
 
 if __name__ == "__main__":
     app.run(debug=True)
