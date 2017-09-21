@@ -72,7 +72,8 @@ def login():
                 login_user(db_usr, remember=True)
                 user_detail.append(form.username.data)
                 user_detail.append(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                return render_template('welcome.html', name=user_name[form.username.data])
+                name = user_name[str(form.username.data)]
+                return render_template('welcome.html', name=name)
             else:
                 return render_template('login.html',form=form, error='Password is not matching...')
 
