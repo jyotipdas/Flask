@@ -11,20 +11,22 @@
       <div class="row">
         <div class="col-md-offset-4">
             <form method="POST" action="">
-                <label style="display:inline-block;width:100px;">Start Date</label><input style="width:200px;"
-                                                                                          name="sdate"
-                                                                                          placeholder="Start Date"
-                                                                                          type="date"
-                                                                                          value="{{ request.form.sdate }}" required> <br>
-               <label style="display:inline-block;width:100px;">End Date</label><input style="width:200px;" name="edate" type="date"
-                                                                         placeholder="End Date"
-                                             value="{{ request.form.edate }}" required><br>
-               <label style="display:inline-block;width:100px;">Days</label><input style="width:200px;" name='days'
-                                                                                   type="number"
-                                                                     value="{{ request.form.days }}"
-                                                      placeholder="No. of days"
-                                                       required><li>Please cross check the no of days before
-                submitting!!</li><br>
+                <label style="display:inline-block;width:100px;">Start Date</label>
+                 <input style="width:200px;" name="sdate" placeholder="Start Date" type="date"
+                       value="{{ request.form.sdate }}" required>
+                <br>
+               <label style="display:inline-block;width:100px;">End Date</label>
+                <input style="width:200px;" name="edate" type="date" placeholder="End Date"
+                       value="{{ request.form.edate }}" required>
+                <br>
+               <label style="display:inline-block;width:100px;">Days</label>
+                <input style="width:200px;" name='days'type="number"value="{{ request.form.days }}"
+                       placeholder="No. of days" required>
+                <br>
+                <label style="display:inline-block;width:100px;">Reason</label>
+                <input style="width:200px;" name='reason'type="text"value="{{ request.form.reason }}"
+                       placeholder="Reason" required>
+                <br>
                 <input type="submit" value="Submit">
             </form>
             {% if error %}

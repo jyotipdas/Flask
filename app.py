@@ -16,6 +16,7 @@ app = Flask(__name__)
 cron = Scheduler(daemon=True)
 cron.start()
 
+
 app.config['SECRET_KEY'] = ';Y8m4e#PUP\qQR]+"`ZAM(&td{8utWN?CtHXg6X(-z!$XP4?(t)~g4Kk9xgr8}ZaH]eGx(:uvNE}GVp;'
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6LePzS8UAAAAADoA_QPfGVUArvWnA0oF9eZi7-L7'
 app.config['RECAPTCHA_PRIVATE_KEY'] = '6Lf3yS8UAAAAAExePlZihuoFhiZIcZOKWskui3sd'
@@ -25,6 +26,9 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+user_detail = []
+user_name={'jdas':'Jyoti','bdas':'Byomkesh','cjog':'Chinmay','skupwadde':'Swaapnesh','kahire':'Kapil',
+           'ashinde':'Abhijit'}
 
 class Users(UserMixin,db.Model):
     __tablename__ = 'users'
@@ -46,6 +50,8 @@ class LeaveDetail(db.Model):
     edate = db.Column(db.DateTime,nullable=False)
     days = db.Column(db.Integer,nullable=False)
     a_time = db.Column(db.DateTime,nullable=False)
+    reason = db.Column(db.String(200))
+    active = db.Column(db.Integer,nullable=False)
     usr_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
 
@@ -64,7 +70,9 @@ def login():
         if db_usr:
             if check_password_hash(db_usr.password,form.password.data):
                 login_user(db_usr, remember=True)
-                return render_template('welcome.html', name=form.username.data)
+                user_detail.append(form.username.data)
+                user_detail.append(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                return render_template('welcome.html', name=user_name[form.username.data])
             else:
                 return render_template('login.html',form=form, error='Password is not matching...')
 
@@ -73,7 +81,7 @@ def login():
 @app.route('/welcome')
 @login_required
 def welcome():
-    return render_template('welcome.html')
+    return render_template('welcome.html',name=user_name[user_detail[0]])
 
 @app.route('/plan/', methods=['GET','POST'])
 @login_required
@@ -87,10 +95,10 @@ def plan():
         balance = Users.query.filter_by(id=current_user.get_id()).first()
         dbbalance= balance.balance
         ctime=datetime.datetime.now()
-        if int(days) <= dbbalance :
+        if int(days) <= dbbalance:
             updated_balance = dbbalance - int(days)
             balance.balance = updated_balance
-            leave = LeaveDetail(sdate=sdate, edate=edate,days=days,a_time=ctime,
+            leave = LeaveDetail(sdate=sdate, edate=edate,days=days,a_time=ctime,reason=request.form['reason'],active=1,
                             user = current_user )
             db.session.add(leave)
             db.session.commit()
@@ -121,6 +129,17 @@ def balance():
     balance = Users.query.filter_by(id=current_user.get_id()).first()
     list = balance.balance
     return render_template('balance.html', list=list)
+
+@app.route('/comp-off/')
+@login_required
+def compoff():
+    return render_template('compoff.html')
+
+@app.route('/cancel/')
+@login_required
+def cancel():
+    return render_template('cancel.html')
+
 
 @app.route('/logout/')
 @login_required
