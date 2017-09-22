@@ -87,14 +87,14 @@ def welcome():
 @app.route('/plan/', methods=['GET','POST'])
 @login_required
 def plan():
+    balance = Users.query.filter_by(id=current_user.get_id()).first()
+    dbbalance = balance.balance
     if request.method == 'POST':
         if request.form['sdate'] > request.form['edate'] :
             return render_template('plan.html', error='Start date is greater than End date')
         sdate = datetime.datetime.strptime(str(request.form['sdate']),'%Y-%m-%d')
         edate = datetime.datetime.strptime(str(request.form['edate']),'%Y-%m-%d')
         days = int(request.form['days'])
-        balance = Users.query.filter_by(id=current_user.get_id()).first()
-        dbbalance= balance.balance
         ctime=datetime.datetime.now()
         if int(days) <= dbbalance:
             updated_balance = dbbalance - int(days)
@@ -111,35 +111,29 @@ def plan():
             return render_template('plan.html', error='You have only {} no of leaves'.format(balance))
 
     else:
-        return render_template('plan.html')
+        return render_template('plan.html',message='You have {} nos. of leave in your bucket!!!'.format(dbbalance))
 
-@app.route('/log/',methods=['GET','POST'])
+@app.route('/cancel/',methods=['GET','POST'])
 @login_required
-def log():
-    results = db.engine.execute(text("select username,sdate,edate,days from users join leavedetail on users.id = "
-                                     "leavedetail.usr_id where users.id = {}".format(current_user.get_id())))
-
-    if results:
-        return render_template('log.html', list=results)
+def cancel():
+    results = db.engine.execute(text("select username,sdate,edate,reason from users join leavedetail on users.id = "
+                                     "leavedetail.usr_id where users.id = {} and leavedetail.active = 1".format(
+        current_user.get_id())))
+    today = datetime.datetime.today().strftime('%Y-%m-%d')
+    for result in results:
+        if today <= result[1]:
+            return render_template('cancel.html', list=result)
     else:
-        return render_template('log.html', message='Wow!! You dont have any leave in past....')
-
-@app.route('/balance/')
-@login_required
-def balance():
-    balance = Users.query.filter_by(id=current_user.get_id()).first()
-    list = balance.balance
-    return render_template('balance.html', list=list)
+        return render_template('cancel.html', message="Wow!! You don't have any leave in past....")
+@app.route('/cancel/<string:daterange>')
+def soft_delete(daterange):
+    print daterange
+    return '<h1>Deleted</h1>'
 
 @app.route('/comp-off/')
 @login_required
 def compoff():
     return render_template('compoff.html')
-
-@app.route('/cancel/')
-@login_required
-def cancel():
-    return render_template('cancel.html')
 
 
 @app.route('/logout/')
