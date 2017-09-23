@@ -1,5 +1,5 @@
 #!/usr/bin/python2.7
-from flask import Flask, render_template,request, url_for, redirect
+from flask import Flask, render_template,request, url_for, redirect, session
 from flask_wtf import FlaskForm, RecaptchaField
 from wtforms import StringField, PasswordField
 from wtforms.validators import InputRequired, Length
@@ -16,6 +16,7 @@ app = Flask(__name__)
 cron = Scheduler(daemon=True)
 cron.start()
 
+
 app.config['SECRET_KEY'] = ';Y8m4e#PUP\qQR]+"`ZAM(&td{8utWN?CtHXg6X(-z!$XP4?(t)~g4Kk9xgr8}ZaH]eGx(:uvNE}GVp;'
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6LePzS8UAAAAADoA_QPfGVUArvWnA0oF9eZi7-L7'
 app.config['RECAPTCHA_PRIVATE_KEY'] = '6Lf3yS8UAAAAAExePlZihuoFhiZIcZOKWskui3sd'
@@ -25,6 +26,8 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+user_name={'jdas':'Jyoti','bdas':'Byomkesh','cjog':'Chinmay','skupwadde':'Swaapnesh','kahire':'Kapil',
+           'ashinde':'Abhijit','dpatil':'Dinesh'}
 
 class Users(UserMixin,db.Model):
     __tablename__ = 'users'
@@ -46,6 +49,8 @@ class LeaveDetail(db.Model):
     edate = db.Column(db.DateTime,nullable=False)
     days = db.Column(db.Integer,nullable=False)
     a_time = db.Column(db.DateTime,nullable=False)
+    reason = db.Column(db.String(200))
+    active = db.Column(db.Integer,nullable=False)
     usr_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
 
@@ -64,7 +69,10 @@ def login():
         if db_usr:
             if check_password_hash(db_usr.password,form.password.data):
                 login_user(db_usr, remember=True)
-                return render_template('welcome.html', name=form.username.data)
+                session['username'] = form.username.data
+                session['login_time'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                session['user_id'] = current_user.get_id()
+                return render_template('welcome.html', name=user_name[session['username']])
             else:
                 return render_template('login.html',form=form, error='Password is not matching...')
 
@@ -73,24 +81,24 @@ def login():
 @app.route('/welcome')
 @login_required
 def welcome():
-    return render_template('welcome.html')
+    return render_template('welcome.html',name=user_name[session['username']])
 
 @app.route('/plan/', methods=['GET','POST'])
 @login_required
 def plan():
+    balance = Users.query.filter_by(id=current_user.get_id()).first()
+    dbbalance = balance.balance
     if request.method == 'POST':
         if request.form['sdate'] > request.form['edate'] :
             return render_template('plan.html', error='Start date is greater than End date')
         sdate = datetime.datetime.strptime(str(request.form['sdate']),'%Y-%m-%d')
         edate = datetime.datetime.strptime(str(request.form['edate']),'%Y-%m-%d')
         days = int(request.form['days'])
-        balance = Users.query.filter_by(id=current_user.get_id()).first()
-        dbbalance= balance.balance
         ctime=datetime.datetime.now()
-        if int(days) <= dbbalance :
+        if int(days) <= dbbalance:
             updated_balance = dbbalance - int(days)
             balance.balance = updated_balance
-            leave = LeaveDetail(sdate=sdate, edate=edate,days=days,a_time=ctime,
+            leave = LeaveDetail(sdate=sdate, edate=edate,days=days,a_time=ctime,reason=request.form['reason'],active=1,
                             user = current_user )
             db.session.add(leave)
             db.session.commit()
@@ -102,25 +110,40 @@ def plan():
             return render_template('plan.html', error='You have only {} no of leaves'.format(balance))
 
     else:
-        return render_template('plan.html')
+        return render_template('plan.html',message='You have {} nos. of leave in your bucket!!!'.format(dbbalance))
 
-@app.route('/log/',methods=['GET','POST'])
+@app.route('/cancel/',methods=['GET','POST'])
 @login_required
-def log():
-    results = db.engine.execute(text("select username,sdate,edate,days from users join leavedetail on users.id = "
-                                     "leavedetail.usr_id where users.id = {}".format(current_user.get_id())))
-
-    if results:
-        return render_template('log.html', list=results)
+def cancel():
+    results = db.engine.execute(text("select username,sdate,edate,reason from users join leavedetail on users.id = "
+                                     "leavedetail.usr_id where users.id = {} and leavedetail.active = 1".format(
+        current_user.get_id())))
+    today = datetime.datetime.today().strftime('%Y-%m-%d')
+    for result in results:
+        if today <= result[1]:
+            return render_template('cancel.html', list=result)
     else:
-        return render_template('log.html', message='Wow!! You dont have any leave in past....')
+        return render_template('cancel.html', message="Wow!! You don't have any leave in past....")
+@app.route('/cancel/<string:daterange>')
+def soft_delete(daterange):
+    sdate,edate = daterange.split('=')
+    print sdate,edate
+    d_query='update leavedetail set active = 0 where sdate=\'{}\' and edate=\'{}\' and usr_id = {}'.format(sdate+' '
+                                                                                                         '00:00:00.000000',edate+' 00:00:00.000000',
+                                                                                                   session['user_id'])
+    results = db.engine.execute(text(d_query))
+    if results:
+        db.session.commit()
+    else:
+        return render_template('cancel.html', error='Some problem with DB....')
 
-@app.route('/balance/')
+    return redirect('cancel')
+
+@app.route('/comp-off/')
 @login_required
-def balance():
-    balance = Users.query.filter_by(id=current_user.get_id()).first()
-    list = balance.balance
-    return render_template('balance.html', list=list)
+def compoff():
+    return render_template('compoff.html')
+
 
 @app.route('/logout/')
 @login_required
