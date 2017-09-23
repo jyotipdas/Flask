@@ -115,7 +115,7 @@ def plan():
 @app.route('/cancel/',methods=['GET','POST'])
 @login_required
 def cancel():
-    results = db.engine.execute(text("select username,sdate,edate,reason from users join leavedetail on users.id = "
+    results = db.engine.execute(text("select username,sdate,edate,reason,days from users join leavedetail on users.id = "
                                      "leavedetail.usr_id where users.id = {} and leavedetail.active = 1".format(
         current_user.get_id())))
     today = datetime.datetime.today().strftime('%Y-%m-%d')
@@ -126,13 +126,14 @@ def cancel():
         return render_template('cancel.html', message="Wow!! You don't have any leave in past....")
 @app.route('/cancel/<string:daterange>')
 def soft_delete(daterange):
-    sdate,edate = daterange.split('=')
-    print sdate,edate
+    sdate,edate,days = daterange.split('=')
     d_query='update leavedetail set active = 0 where sdate=\'{}\' and edate=\'{}\' and usr_id = {}'.format(sdate+' '
                                                                                                          '00:00:00.000000',edate+' 00:00:00.000000',
                                                                                                    session['user_id'])
     results = db.engine.execute(text(d_query))
     if results:
+        balance = Users.query.filter_by(id=current_user.get_id()).first()
+        balance.balance = balance.balance + int(days)
         db.session.commit()
     else:
         return render_template('cancel.html', error='Some problem with DB....')
