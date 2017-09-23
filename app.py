@@ -1,5 +1,5 @@
 #!/usr/bin/python2.7
-from flask import Flask, render_template,request, url_for, redirect
+from flask import Flask, render_template,request, url_for, redirect, session
 from flask_wtf import FlaskForm, RecaptchaField
 from wtforms import StringField, PasswordField
 from wtforms.validators import InputRequired, Length
@@ -26,9 +26,8 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-user_detail = []
 user_name={'jdas':'Jyoti','bdas':'Byomkesh','cjog':'Chinmay','skupwadde':'Swaapnesh','kahire':'Kapil',
-           'ashinde':'Abhijit'}
+           'ashinde':'Abhijit','dpatil':'Dinesh'}
 
 class Users(UserMixin,db.Model):
     __tablename__ = 'users'
@@ -70,10 +69,10 @@ def login():
         if db_usr:
             if check_password_hash(db_usr.password,form.password.data):
                 login_user(db_usr, remember=True)
-                user_detail.append(form.username.data)
-                user_detail.append(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                name = user_name[str(form.username.data)]
-                return render_template('welcome.html', name=name)
+                session['username'] = form.username.data
+                session['login_time'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                session['user_id'] = current_user.get_id()
+                return render_template('welcome.html', name=user_name[session['username']])
             else:
                 return render_template('login.html',form=form, error='Password is not matching...')
 
@@ -82,7 +81,7 @@ def login():
 @app.route('/welcome')
 @login_required
 def welcome():
-    return render_template('welcome.html',name=user_name[user_detail[0]])
+    return render_template('welcome.html',name=user_name[session['username']])
 
 @app.route('/plan/', methods=['GET','POST'])
 @login_required
@@ -127,8 +126,18 @@ def cancel():
         return render_template('cancel.html', message="Wow!! You don't have any leave in past....")
 @app.route('/cancel/<string:daterange>')
 def soft_delete(daterange):
-    print daterange
-    return '<h1>Deleted</h1>'
+    sdate,edate = daterange.split('=')
+    print sdate,edate
+    d_query='update leavedetail set active = 0 where sdate=\'{}\' and edate=\'{}\' and usr_id = {}'.format(sdate+' '
+                                                                                                         '00:00:00.000000',edate+' 00:00:00.000000',
+                                                                                                   session['user_id'])
+    results = db.engine.execute(text(d_query))
+    if results:
+        db.session.commit()
+    else:
+        return render_template('cancel.html', error='Some problem with DB....')
+
+    return redirect('cancel')
 
 @app.route('/comp-off/')
 @login_required

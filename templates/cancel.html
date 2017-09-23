@@ -2,7 +2,7 @@
 {% block content %}
     <div class="jumbotron">
       <div class="container">
-        <h2>Below is your leave log</h2>
+        <h2>Please check the dates before pressing the X</h2>
       </div>
     </div>
 
@@ -18,8 +18,10 @@
                                                aria-hidden="true">
 
                   </span></a></li>
-          {% else %}
+          {% elif message %}
             <li><a style="color:blue;">{{ message }}</a></li>
+          {% else %}
+            <li><a style="color:red;">{{ error }}</a></li>
         {% endif %}
         </ul>
         </div>
